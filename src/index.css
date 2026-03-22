@@ -1,0 +1,891 @@
+/*
+ * ╔═══════════════════════════════════════════════════════════════════════╗
+ * ║  index.css — Global Styles & Design System                           ║
+ * ╚═══════════════════════════════════════════════════════════════════════╝
+ *
+ * ARCHITECTURE ROLE:
+ *   Single stylesheet for the entire CWH Dashboard. Defines the design
+ *   token system (CSS custom properties), layout grid, and all component
+ *   styles. There are no CSS modules or scoped styles — everything lives
+ *   here for simplicity.
+ *
+ * THEMING:
+ *   - :root defines the light theme palette.
+ *   - .theme-dark overrides the same custom properties for dark mode.
+ *   - The class is toggled on <body> by App.jsx when the user switches
+ *     basemaps to 'dark'.
+ *   - All component colors reference var(--*) tokens, never hard-coded
+ *     hex values (except where Leaflet or Chart.js force it).
+ *
+ * LAYOUT (3-column):
+ *   .dashboard → flex row, full viewport
+ *   .layer-panel (280px fixed) │ .map-wrapper (flex:1) │ .detail-panel (360px fixed)
+ *
+ * CSS SECTIONS (in order):
+ *   1. Typography + resets (Inter, box-sizing, scrollbar hides)
+ *   2. Layout — dashboard, layer-panel, map-wrapper, detail-panel
+ *   3. Layer panel — toggles, category labels, metric select
+ *   4. Map overrides — Leaflet zoom, attribution, dark basemap filter
+ *   5. Detail panel — tabs, attribute rows, score bars, empty state
+ *   6. Stats panel — cards grid, chart containers
+ *   7. Legend panel — overlay positioning, gradient/categorical/solid
+ *   8. Watershed labels — permanent tooltip styling
+ *   9. Basemap switcher — pill button group
+ *  10. Leaflet pane pointer-event overrides (topOverlayPane pass-through)
+ *  11. Scoring panel range slider thumb customization
+ *
+ * LEAFLET PANE HACK (line ~800):
+ *   The topOverlayPane (GSA dots, z-index 600) has pointer-events:none
+ *   on its container div so clicks pass through empty space to the dense
+ *   school layer below. CSS then re-enables pointer-events on the actual
+ *   SVG <path> and <circle> elements so the dots themselves are clickable.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  /* Light theme palette */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.9);
+  --bg-card: rgba(241, 245, 249, 0.95);
+  --bg-card-hover: rgba(226, 232, 240, 0.95);
+  --border-subtle: rgba(0, 0, 0, 0.07);
+  --border-accent: rgba(0, 0, 0, 0.12);
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent-cyan: #0891b2;
+  --accent-green: #16a34a;
+  --accent-purple: #7c3aed;
+  --accent-orange: #ea580c;
+  --accent-pink: #db2777;
+  --accent-blue: #2563eb;
+  --shadow-glow: 0 0 20px rgba(8, 145, 178, 0.08);
+  --emoji-outline-color: rgba(0, 0, 0, 0.75);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+.theme-dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-glass: rgba(30, 41, 59, 0.9);
+  --bg-card: rgba(15, 23, 42, 0.95);
+  --bg-card-hover: rgba(51, 65, 85, 0.95);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-accent: rgba(255, 255, 255, 0.1);
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --emoji-outline-color: transparent;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Hide number input up/down spinner arrows */
+.no-spinners::-webkit-outer-spin-button,
+.no-spinners::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ─── Layout ─── */
+.dashboard {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ─── Left Sidebar: Layer Panel ─── */
+.layer-panel {
+  width: 280px;
+  min-width: 280px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.layer-panel-header {
+  padding: 6px 12px 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cwh-logo {
+  width: 100%;
+  max-width: 240px;
+  height: 65px;
+  /* Use CSS masking to perfectly color the alpha channel of the image */
+  background-color: #1e293b;
+  -webkit-mask: url('/cwh_logo.avif') no-repeat center / contain;
+  mask: url('/cwh_logo.avif') no-repeat center / contain;
+  transition: background-color 0.3s ease;
+}
+
+.theme-dark .cwh-logo {
+  background-color: #ffffff;
+}
+
+.header-subtitle {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin: 8px 0 0;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.layer-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.layer-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.layer-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.layer-list::-webkit-scrollbar-thumb {
+  background: var(--border-accent);
+  border-radius: 4px;
+}
+
+.category-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+  padding: 12px 8px 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.category-label span {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  margin-bottom: 2px;
+}
+
+.layer-item:hover {
+  background: var(--bg-card-hover);
+  transform: translateX(2px);
+}
+
+.layer-item.active {
+  background: var(--bg-card);
+}
+
+/* Toggle: shared base */
+.layer-toggle {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+/* Radio style for exclusive groups */
+.layer-toggle.radio {
+  border-radius: 50%;
+}
+
+.layer-toggle.on {
+  border-color: var(--accent-green);
+  background: rgba(22, 163, 74, 0.12);
+}
+
+.layer-toggle.radio.on {
+  border-color: var(--accent-green);
+  background: transparent;
+}
+
+.radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-green);
+}
+
+/* Metric dropdown select */
+.metric-select {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-accent);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 0.7rem;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+  max-width: 200px;
+  transition: border-color 0.2s;
+}
+
+.metric-select:focus {
+  border-color: var(--accent-green);
+}
+
+/* Footer */
+.layer-panel-footer {
+  padding: 6px 12px;
+  border-top: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.layer-panel-footer a {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  letter-spacing: 0.5px;
+  text-transform: lowercase;
+  transition: color 0.2s;
+}
+
+.layer-panel-footer a:hover {
+  color: var(--accent-green);
+}
+
+.layer-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.layer-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin-bottom: 2px;
+}
+
+.layer-desc {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layer-count {
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* ─── Map Container ─── */
+.map-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.map-wrapper .leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: var(--bg-primary);
+}
+
+/* Custom filter to make the CartoDB Dark basemap a softer, lighter gray */
+.dark-basemap-filter {
+  filter: brightness(1.8) contrast(0.85) !important;
+}
+
+/* Override Leaflet dark theme */
+.leaflet-control-zoom a {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-subtle) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+.leaflet-control-attribution {
+  background: var(--bg-glass) !important;
+  color: var(--text-muted) !important;
+  font-size: 0.6rem !important;
+}
+
+.leaflet-control-attribution a {
+  color: var(--text-secondary) !important;
+}
+
+/* ─── Right Panel: Detail + Stats ─── */
+.detail-panel {
+  width: 360px;
+  min-width: 360px;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.detail-header {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.detail-header h2 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.detail-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.detail-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-card);
+}
+
+.detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+
+.detail-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.detail-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.detail-body::-webkit-scrollbar-thumb {
+  background: var(--border-accent);
+  border-radius: 4px;
+}
+
+/* Detail tab system */
+.detail-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.detail-tab {
+  padding: 10px 14px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.detail-tab:hover {
+  color: var(--text-secondary);
+}
+
+.detail-tab.active {
+  color: var(--accent-cyan);
+  border-bottom-color: var(--accent-cyan);
+}
+
+/* Attribute rows */
+.attr-group-title {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  padding: 12px 0 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 6px;
+}
+
+.attr-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.15s;
+}
+
+.attr-row:hover {
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.attr-label {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  max-width: 50%;
+}
+
+.attr-value {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: right;
+  word-break: break-word;
+}
+
+/* Score bars */
+.score-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.score-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.score-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.55;
+  /* increased slightly so the outline pops */
+  text-shadow:
+    -1px -1px 0 var(--emoji-outline-color),
+    1px -1px 0 var(--emoji-outline-color),
+    -1px 1px 0 var(--emoji-outline-color),
+    1px 1px 0 var(--emoji-outline-color),
+    0px 2px 4px rgba(0, 0, 0, 0.15);
+  /* added a tiny drop shadow for depth */
+}
+
+.empty-state h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+}
+
+.empty-state p {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Stats cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow);
+}
+
+.stat-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.chart-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.chart-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+/* Remove default browser focus ring on interactive leaflet SVG paths */
+path.leaflet-interactive:focus {
+  outline: none;
+}
+
+/* Loading state */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-glass);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-subtle);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Leaflet popup overrides */
+.leaflet-popup-content-wrapper {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--border-accent) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12) !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--bg-secondary) !important;
+}
+
+.leaflet-popup-content {
+  margin: 10px 14px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.8rem !important;
+}
+
+.popup-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+.popup-layer {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* Prevent tooltips from intercepting mouse events and getting stuck */
+.leaflet-tooltip {
+  pointer-events: none !important;
+}
+
+/* ─── Legend Panel ─── */
+.legend-panel {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-right: none;
+  border-bottom: none;
+  border-radius: var(--radius-sm) 0 0 0;
+  /* Only top-left rounded */
+  padding: 8px 12px 10px;
+  max-width: 290px;
+  max-height: calc(100vh - 80px);
+  /* prevent overflow if many legends exist */
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: -2px -2px 15px rgba(0, 0, 0, 0.2);
+  pointer-events: auto;
+  /* ensure we can scroll within the legend if needed */
+}
+
+/* Make scrollbar small for the legend if it overflows */
+.legend-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.legend-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.legend-panel::-webkit-scrollbar-thumb {
+  background: var(--border-accent);
+  border-radius: 4px;
+}
+
+.legend-section {
+  margin-bottom: 16px;
+}
+
+.legend-section:last-child {
+  margin-bottom: 0;
+}
+
+.legend-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--border-subtle);
+}
+
+.legend-title-solid {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.legend-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.legend-categorical {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.legend-gradient-wrapper {
+  margin-top: 6px;
+}
+
+.legend-gradient-bar {
+  height: 8px;
+  width: 100%;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.legend-gradient-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+/* ─── Watershed permanent labels ─── */
+.watershed-label {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-shadow:
+    -1px -1px 0 #fff,
+    1px -1px 0 #fff,
+    -1px 1px 0 #fff,
+    1px 1px 0 #fff,
+    0 0 6px rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.watershed-label::before {
+  display: none !important;
+}
+
+/* Make boundary layer paths transparent to mouse events */
+.leaflet-overlay-pane svg path[fill-opacity="0"],
+.leaflet-overlay-pane svg path[fill="transparent"] {
+  pointer-events: none !important;
+}
+
+/* Basemap Switcher */
+.basemap-switcher {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 4px;
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.basemap-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.basemap-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.basemap-btn.active {
+  background: var(--accent-cyan);
+  color: var(--bg-main);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Leaflet Pane Pointer-Events Pass-Through ──
+   topOverlayPane (GSA) sits above overlayPaneStrict (Traditional Schools).
+   The pane div has pointer-events:none so clicks fall through gaps between
+   GSA dots to the dense school layer below. These rules re-enable
+   pointer-events on the actual SVG shapes so GSA dots remain clickable. */
+.leaflet-topOverlayPane-pane svg {
+  pointer-events: none !important;
+}
+
+.leaflet-topOverlayPane-pane path,
+.leaflet-topOverlayPane-pane circle {
+  pointer-events: auto !important;
+}
+
+/* ─── Scoring Panel Range Sliders ─── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--accent-cyan);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.15), 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--accent-cyan);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}

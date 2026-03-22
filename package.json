@@ -1,0 +1,27 @@
+{
+    "name": "cwh-dashboard",
+    "private": true,
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "chart.js": "^4.4.1",
+        "leaflet": "^1.9.4",
+        "leaflet.markercluster": "^1.5.3",
+        "leaflet.vectorgrid": "^1.3.0",
+        "react": "^18.2.0",
+        "react-chartjs-2": "^5.2.0",
+        "react-dom": "^18.2.0",
+        "react-leaflet": "^4.2.1",
+        "react-leaflet-vectorgrid": "^2.2.1",
+        "topojson-client": "^3.1.0"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-react": "^4.2.1",
+        "vite": "^5.2.0"
+    }
+}
