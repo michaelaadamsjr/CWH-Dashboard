@@ -2,7 +2,6 @@
 
 The **School Greening Dashboard** is a sophisticated, data-driven web application for prioritizing environmental interventions in Los Angeles schools. It helps identify campuses that would benefit most from greening initiatives based on various environmental, climatic, and social factors.
 
-![Dashboard Demo](./docs/assets/dashboard-demo.webp)
 
 ## 🌟 Key Features
 
@@ -26,7 +25,6 @@ Search for specific schools (e.g., "Abraham Lincoln Elementary") to snap the map
 ### 4. Real-time Analytics & Leaderboard
 The **"Statistics"** tab offers a live leaderboard ranking the top 20 schools according to the active metric, complemented by a distribution chart showing the spread of scores across the currently visible map area.
 
-![Dashboard Preview](./docs/assets/dashboard-preview.png)
 
 ## 🚀 Getting Started
 
