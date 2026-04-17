@@ -18,7 +18,7 @@ The map is the heart of the dashboard. The primary layer represents campuses con
 The left panel controls what you see on the map. It allows you to toggle multiple regional datasets on and off to add geographic context.
 
 ### Distinct Layer Types:
-- **Schools & Parks:** Toggle the entire CSCD dataset (the main polygon dataset), specific greening opportunity sites (like GSA sites), and existing parks.
+- **Schools & Parks:** Toggle the entire CSCD dataset (the main polygon dataset), GSA's datasets for schools, and existing parks.
 - **Environmental & Social Constraints (Datasets):** Turn on layers like CalEnviroScreen 5.0 (pollution burden) and Tree Equity Score to visualize community need.
 - **Water Infrastructure (Storm Drain Networks):** View granular data like catch basins, gravity mains, and open channels to understand stormwater capture boundaries.
 - **Boundaries:** Turn on watershed boundaries and local subbasins for regional context.

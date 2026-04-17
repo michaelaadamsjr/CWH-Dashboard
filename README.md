@@ -6,15 +6,8 @@ Live site: [cwh.surge.sh](https://cwh.surge.sh)
 [![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)](https://vitejs.dev/)
 [![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=Leaflet&logoColor=white)](https://leafletjs.com/)
 
-The **School Greening Dashboard** is a sophisticated, data-driven web application for prioritizing environmental interventions in Los Angeles schools. It helps identify campuses that would benefit most from greening initiatives based on various environmental, climatic, and social factors. Created for the **Council for Watershed Health**.
+The **School Greening Dashboard** is a data-driven web application for prioritizing environmental interventions in Los Angeles schools. It helps identify campuses that would benefit most from greening initiatives based on various environmental, climatic, and social factors. Created for the **Council for Watershed Health**.
 
----
-
-## Table of Contents
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [Architecture & Built With](#architecture--built-with)
-- [Getting Started](#getting-started)
 ---
 
 ## Overview
@@ -61,9 +54,4 @@ This application employs a modern web development stack optimized for performanc
 
 ---
 
-## Getting Started
-
-For a comprehensive guide on how to navigate the application, configure data layers, and build custom scoring scenarios, please see our detailed [User Tutorial](TUTORIAL.md).
-
----
 *Created for the Council for Watershed Health.*
