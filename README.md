@@ -65,35 +65,7 @@ This application employs a modern web development stack optimized for performanc
 
 ## Getting Started
 
-Follow these steps to set up the project locally for development.
-
-### Prerequisites
-It is recommended to have [Node.js](https://nodejs.org/) installed on your machine (v16.0 or higher).
-
-### Installation
-
-1. **Clone this repository**
-   ```bash
-   git clone https://github.com/michaelaadamsjr/CWH-Dashboard.git
-   ```
-
-2. **Navigate into the directory**
-   ```bash
-   cd CWH-Dashboard
-   ```
-
-3. **Install the dependencies**
-   ```bash
-   npm install
-   ```
-
-### Running the Application Locally
-
-To start the local development server, simply run:
-```bash
-npm run dev
-```
-Open your browser and navigate to `http://localhost:5173` (or the port specified in the terminal).
+For a comprehensive guide on how to navigate the application, configure data layers, and build custom scoring scenarios, please see our detailed [User Tutorial](TUTORIAL.md).
 
 ---
 
