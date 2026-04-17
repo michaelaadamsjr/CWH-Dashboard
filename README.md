@@ -15,8 +15,6 @@ The **School Greening Dashboard** is a sophisticated, data-driven web applicatio
 - [Key Features](#key-features)
 - [Architecture & Built With](#architecture--built-with)
 - [Getting Started](#getting-started)
-- [Deployment](#deployment)
-
 ---
 
 ## Overview
@@ -66,16 +64,6 @@ This application employs a modern web development stack optimized for performanc
 ## Getting Started
 
 For a comprehensive guide on how to navigate the application, configure data layers, and build custom scoring scenarios, please see our detailed [User Tutorial](TUTORIAL.md).
-
----
-
-## Deployment
-
-To build the app for production:
-```bash
-npm run build
-```
-The optimized HTML, CSS, JavaScript, and binary data assets will be generated in the `dist/` directory.
 
 ---
 *Created for the Council for Watershed Health.*
