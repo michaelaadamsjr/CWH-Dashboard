@@ -23,6 +23,9 @@ The **School Greening Dashboard** is a sophisticated, data-driven web applicatio
 
 The purpose of this project is to provide a comprehensive, interactive map interface that helps researchers, urban planners, and the Council for Watershed Health identify schools with the highest need and best opportunities for greening projects. By overlaying multiple datasets and allowing custom weighting strategies, this tool empowers data-informed decision making.
 
+> [!TIP]
+> **New User?** Check out our detailed [User Tutorial](TUTORIAL.md) to learn how to navigate the map, toggle layers, and build custom scoring scenarios.
+
 ## Key Features
 
 ### 1. Weighted Scoring Engine
