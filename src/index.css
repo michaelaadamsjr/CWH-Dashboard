@@ -727,6 +727,12 @@ path.leaflet-interactive:focus {
   border-bottom: none;
 }
 
+.legend-note {
+  margin-bottom: 8px;
+  font-size: 0.64rem;
+  color: var(--text-muted);
+}
+
 .legend-item {
   display: flex;
   align-items: center;
@@ -850,6 +856,13 @@ path.leaflet-interactive:focus {
 .leaflet-topOverlayPane-pane path,
 .leaflet-topOverlayPane-pane circle {
   pointer-events: auto !important;
+}
+
+.leaflet-treeSummaryPane-pane,
+.leaflet-treeSummaryPane-pane .leaflet-marker-icon,
+.leaflet-treeSummaryPane-pane .marker-cluster {
+  pointer-events: auto !important;
+  cursor: pointer;
 }
 
 /* ─── Scoring Panel Range Sliders ─── */

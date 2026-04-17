@@ -63,6 +63,10 @@ const LegendPanel = React.memo(({ visibleLayers, activeSchoolMetric }) => {
                             <div className="legend-title">{title}</div>
                         )}
 
+                        {legend.note && (
+                            <div className="legend-note">{legend.note}</div>
+                        )}
+
                         {legend.type === 'categorical' && (
                             <div className="legend-categorical">
                                 {legend.items.map((item, idx) => (

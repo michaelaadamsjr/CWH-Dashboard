@@ -1,7 +1,7 @@
 /**
- * ╔═══════════════════════════════════════════════════════════════════════╗
+ * ╔═══════════════════════════════════════════════════════════════════════=
  * ║  layerConfig.js — Map Layer Properties & Configuration                ║
- * ╚═══════════════════════════════════════════════════════════════════════╝
+ * ╚═══════════════════════════════════════════════════════════════════════â•
  *
  * ARCHITECTURE NOTES:
  *
@@ -90,6 +90,19 @@ function getCesColor(pctl) {
     return 'rgb(255, 234, 69)';
 }
 
+// USFS tree canopy percentage classes (LA block groups)
+function getCanopyColor(pct) {
+    if (pct === null || isNaN(pct)) return '#9ca3af';
+    // Deep forest greens are reached at 50% canopy.
+    const t = Math.max(0, Math.min(50, Number(pct))) / 50;
+
+    const hue = Math.round(75 + t * 80);
+    const sat = Math.round(55 + t * 30);
+    const lit = Math.round(88 - t * 63);
+
+    return `hsl(${hue}, ${sat}%, ${lit}%)`;
+}
+
 // SCW Stormwater Opportunity Unique Values mapped to exact extracted RGBs
 function getScwStormColor(val) {
     const map = {
@@ -151,10 +164,10 @@ export function getSgmaDescription(priority) {
 const LAYER_CONFIG = [
     {
         id: 'schools_andparks',
-        name: 'School Indices (CSCD, 2024)',
+        name: 'School Indices (CSCD, 2025)',
         detailLabel: 'Traditional Public Schools, K-12',
-        file: '/data/finalschoolswithdatareal.geojson',
-        color: '#000000',
+        file: '/data/finalschoolswithdatareal.bin',
+        color: '#0891b2',
         description: 'Schools with graduated score coloring (Green=Low, Red=High)',
         defaultVisible: true,
         nameField: 'School',
@@ -177,7 +190,7 @@ const LAYER_CONFIG = [
             { key: 'CanopyHeatReliefScore', label: 'Canopy Heat Relief', format: 'score', trendText: '(Higher = More Opportunity)' },
             { key: 'DisadvantagedCommunitiesScore', label: 'Community Opportunity Score', format: 'score', trendText: '(Higher = More Opportunity)' },
             { key: 'infilpot_pctl', label: 'Infiltration Potential (Percentile)', format: 'score', trendText: '(Higher = More Opportunity)' },
-            { key: 'Join_Count', label: '# Parks within a ¼ mile', format: 'number' },
+            { key: 'Join_Count', label: '# Parks within a 1/4 mile', format: 'number' },
             { key: 'ContainsElementary', label: 'Contains Elementary School', format: 'binary-yn' },
             { key: 'Open', label: 'Open?', format: 'open-yn' },
         ]
@@ -194,7 +207,7 @@ const LAYER_CONFIG = [
         nameField: 'SchoolName',
         category: 'overlays',
         radius: 4,
-        radiusByZoom: { min: 2, max: 4, minZoom: 10, maxZoom: 14 },
+        radiusByZoom: { min: 2, max: 8, minZoom: 10, maxZoom: 18 },
         strokeOpacity: 0.75,
         legend: {
             type: 'solid',
@@ -220,6 +233,8 @@ const LAYER_CONFIG = [
         file: '/data/school_trees_compact.json',
         compactFormat: true, // Decoded at load time from flat-array format
         clustered: true, // Use marker clustering for 82K+ points
+        maxClusterRadius: 40, // Tighter radius to avoid entire campus spiraling from one point
+        disableClusteringAtZoom: 16,
         color: '#16a34a', // Green 600
         description: 'Individual tree inventory from trees.school (82,000+ points).',
         defaultVisible: false,
@@ -251,13 +266,14 @@ const LAYER_CONFIG = [
             { key: 'b', label: 'Botanical Name' },
             { key: 'c', label: 'Common Name' },
             { key: 'd', label: 'Condition' },
-            { key: 's', label: 'School Property' }
+            { key: 's', label: 'School Property' },
+            { key: 'treeCount', label: 'Tree Count', format: 'number' }
         ]
     },
     {
         id: 'parks_public',
         name: 'Parks with Public Access (LA County)',
-        file: '/data/countywide_parks.geojson',
+        file: '/data/countywide_parks.bin',
         color: '#000000',
         fillColor: 'rgba(0,197,255,0.4)',
         description: 'Countywide public parks',
@@ -281,7 +297,7 @@ const LAYER_CONFIG = [
     {
         id: 'ces_5',
         name: 'CalEnviroScreen 5.0 (Draft)',
-        file: '/data/ces.geojson',
+        file: '/data/ces.bin',
         color: '#000000',
         description: 'CalEnviroScreen 5.0 Percentiles',
         defaultVisible: false,
@@ -308,7 +324,7 @@ const LAYER_CONFIG = [
     {
         id: 'tree_equity',
         name: 'Tree Equity Score (2025)',
-        file: '/data/tree_equity.geojson',
+        file: '/data/tree_equity.bin',
         color: '#000000',
         fillColor: 'rgb(252,235,194)',
         description: 'Tree Equity Score polygons',
@@ -343,29 +359,26 @@ const LAYER_CONFIG = [
         id: 'lariac7_canopy',
         name: 'Tree Canopy Coverage (USFS)',
         detailLabel: 'Tree Canopy Coverage — Census Block Group',
-        file: '/data/canopy_blockgroups_lacounty.geojson',
-        color: '#059669', // Emerald 600
-        fillColor: 'rgba(5, 150, 105, 0.4)',
+        file: '/data/canopy_blockgroups_lacounty.bin',
+        color: '#16a34a', // Emerald Green
+        fillColor: 'rgba(22, 163, 74, 0.1)',
         description: 'Tree canopy coverage by census block group for LA County (USFS Land Cover & Tree Canopy Analysis, NAIP-derived).',
         defaultVisible: false,
         nameField: 'GEOID',
         category: 'datasets',
+        fillOpacity: 0.45,
         weight: 0.5,
-        strokeOpacity: 0.3,
-        dynamicColor: (feature) => {
-            const pct = feature.properties.TC_Pct || 0;
-            if (pct > 40) return '#064e3b'; // Emerald 900
-            if (pct > 25) return '#065f46'; // Emerald 800
-            if (pct > 15) return '#047857'; // Emerald 700
-            if (pct > 5) return '#059669';  // Emerald 600
-            return '#10b981'; // Emerald 500
-        },
+        strokeOpacity: 0.6,
+        dynamicColor: (feature) => getCanopyColor(feature.properties.TC_Pct),
+        // Keep class boundaries readable instead of tinting outlines same as fill.
+        dynamicStrokeColor: () => '#334155',
         legend: {
             type: 'gradient',
-            label: 'Canopy Coverage (%)',
+            label: 'Tree Canopy Coverage (USFS)',
             stops: [
-                { color: '#10b981', label: 'Low (<5%)' },
-                { color: '#064e3b', label: 'High (>40%)' }
+                { color: 'hsl(75, 55%, 88%)', label: '0%' },
+                { color: 'hsl(115, 70%, 56%)', label: '25%' },
+                { color: 'hsl(155, 85%, 25%)', label: '50%+' }
             ]
         },
         keyFields: [
@@ -384,10 +397,10 @@ const LAYER_CONFIG = [
     {
         id: 'scw_groundwater',
         name: 'Groundwater Opportunity (SCWP)',
-        file: '/data/scw_groundwater.geojson',
+        file: '/data/scw_groundwater.bin',
         color: '#000000',
         fillColor: 'rgb(0,197,255)',
-        description: 'Groundwater opportunities (Smoothed)',
+        description: 'SCWP groundwater recharge opportunity areas prioritizing unconfined aquifers and upstream capture zones.',
         defaultVisible: false,
         nameField: 'Opportunit',
         category: 'datasets',
@@ -402,15 +415,16 @@ const LAYER_CONFIG = [
     {
         id: 'scw_stormwater',
         name: 'Stormwater Opportunity (SCWP)',
-        file: '/data/scw_stormwater.geojson',
+        file: '/data/scw_stormwater.bin',
         color: '#000000',
-        description: 'Stormwater opportunities (Smoothed)',
+        description: 'SCWP stormwater capture opportunity classes (smoothed). "Wet" = storm-event capture only; "Wet or Dry" = storm-event plus dry-weather/baseflow capture potential.',
         defaultVisible: false,
         nameField: 'Opp_Score',
         category: 'datasets',
         dynamicColor: (feature) => getScwStormColor(feature.properties.Opp_Score),
         legend: {
             type: 'categorical',
+            note: '"Wet" means storm-event capture only. "Wet or Dry" means opportunity in both wet-weather and dry-weather/baseflow conditions.',
             items: [
                 { value: "Highest (Wet)", color: getScwStormColor("Highest (Wet)") },
                 { value: "Highest (Wet or Dry)", color: getScwStormColor("Highest (Wet or Dry)") },
@@ -429,15 +443,16 @@ const LAYER_CONFIG = [
     {
         id: 'scw_water_quality',
         name: 'Opportunity to Improve Water Quality and Increase Water Supply (SCWP)',
-        file: '/data/scw_waterquality.geojson',
+        file: '/data/scw_waterquality.bin',
         color: '#000000',
-        description: 'Water quality opportunities (Smoothed)',
+        description: 'SCWP water quality and water supply opportunity classes (smoothed). "(Water Quality Only)" indicates pollutant-load reduction benefit without meaningful added water-supply benefit.',
         defaultVisible: false,
         nameField: 'Opportunit',
         category: 'datasets',
         dynamicColor: (feature) => getScwWQColor(feature.properties.Opportunit),
         legend: {
             type: 'categorical',
+            note: '"(Water Quality Only)" indicates areas expected to improve pollutant reduction but not add meaningful water-supply yield.',
             items: [
                 { value: "Highest", color: getScwWQColor("Highest") },
                 { value: "Highest (Water Quality Only)", color: getScwWQColor("Highest (Water Quality Only)") },
@@ -456,7 +471,7 @@ const LAYER_CONFIG = [
     {
         id: 'soil_polygons',
         name: 'Soil Types (gNATSGO)',
-        file: '/data/mupolygon.geojson',
+        file: '/data/mupolygon.bin',
         color: '#000000',
         description: 'Soil types with unique value coloring (A, B, C, B/D, C/D, D)',
         defaultVisible: false,
@@ -466,23 +481,252 @@ const LAYER_CONFIG = [
         dynamicColor: (feature) => getSoilColor(feature.properties.hydgrpdcd || 'D'),
         legend: {
             type: 'categorical',
+            note: 'Most infiltration -> least infiltration',
             items: [
-                { value: 'A', color: hsvToHex(254, 87, 63) },
-                { value: 'B', color: hsvToHex(242, 66, 71) },
-                { value: 'C', color: hsvToHex(224, 65, 80) },
-                { value: 'B/D', color: hsvToHex(210, 69, 89) },
-                { value: 'C/D', color: hsvToHex(210, 48, 91) },
-                { value: 'D', color: hsvToHex(203, 33, 93) }
+                { value: 'A - 100%', color: hsvToHex(254, 87, 63) },
+                { value: 'B - 66%', color: hsvToHex(242, 66, 71) },
+                { value: 'C - 33%', color: hsvToHex(224, 65, 80) },
+                { value: 'B/D - 10%', color: hsvToHex(210, 69, 89) },
+                { value: 'C/D - 10%', color: hsvToHex(210, 48, 91) },
+                { value: 'D - 10%', color: hsvToHex(203, 33, 93) }
             ]
         },
         keyFields: [
             { key: 'hydgrpdcd', label: 'Hydrologic Group' }
         ]
     },
+    // ═══ Storm Drain Network (SDN) ═══
+    {
+        id: 'sdn_open_channel',
+        name: 'Open Channels',
+        file: '/data/sdn/OpenChannel.bin',
+        color: '#0f172a',
+        weight: 2.2,
+        lineWeightByZoom: { min: 2.2, max: 4.2, minZoom: 9, maxZoom: 18 },
+        minClickWeight: 4,
+        smoothFactor: 1.6,
+        fillColor: 'transparent',
+        description: 'LA County Flood Control open channels and rivers.',
+        defaultVisible: false,
+        nameField: 'NAME',
+        category: 'sdn',
+        strokeOpacity: 0.9,
+        legend: { type: 'solid', color: '#0f172a' },
+        keyFields: [
+            { key: 'NAME', label: 'Channel Name' },
+            { key: 'WIDTH', label: 'Width (ft)', format: 'number' },
+            { key: 'MATERIAL', label: 'Material' },
+            { key: 'SD_TYPE', label: 'Type' },
+            { key: 'OWNER', label: 'Owner' }
+        ],
+        detailLabel: 'Storm Drain Infrastructure',
+    },
+    {
+        id: 'sdn_gravity_main',
+        name: 'Gravity Mains',
+        file: '/data/sdn/GravityMain.bin',
+        color: '#3b82f6',
+        weight: 0.8,
+        minClickWeight: 1.8,
+        smoothFactor: 2.4,
+        fillColor: 'transparent',
+        description: 'Storm drain gravity mains (185K+ segments).',
+        defaultVisible: false,
+        nameField: 'NAME',
+        category: 'sdn',
+        prefetch: true,
+        clickOnly: true,
+        strokeOpacity: 0.9,
+        legend: { type: 'solid', color: '#3b82f6' },
+        keyFields: [
+            { key: 'NAME', label: 'Name' },
+            { key: 'DIAMETER_HEIGHT', label: 'Diameter/Height (in)', format: 'number' },
+            { key: 'MATERIAL', label: 'Material' }
+        ],
+        detailLabel: 'Storm Drain Infrastructure',
+    },
+    {
+        id: 'sdn_lateral_line',
+        name: 'Lateral Lines',
+        file: '/data/sdn/LateralLine.bin',
+        color: '#818cf8',
+        weight: 0.6,
+        minClickWeight: 1.8,
+        smoothFactor: 2.6,
+        fillColor: 'transparent',
+        description: 'Storm drain lateral connections (170K+ segments).',
+        defaultVisible: false,
+        category: 'sdn',
+        prefetch: true,
+        clickOnly: true,
+        strokeOpacity: 0.9,
+        legend: { type: 'solid', color: '#818cf8' },
+        keyFields: [
+            { key: 'DIAMETER_HEIGHT', label: 'Diameter/Height (in)', format: 'number' },
+            { key: 'MATERIAL', label: 'Material' }
+        ],
+        detailLabel: 'Storm Drain Infrastructure',
+    },
+    {
+        id: 'sdn_culvert',
+        name: 'Culverts',
+        file: '/data/sdn/Culvert.geojson',
+        color: '#22d3ee',
+        weight: 2.2,
+        lineWeightByZoom: { min: 2.2, max: 4.2, minZoom: 9, maxZoom: 18 },
+        minClickWeight: 4,
+        fillColor: 'transparent',
+        description: 'Storm drain culverts.',
+        defaultVisible: false,
+        nameField: 'NAME',
+        category: 'sdn',
+        strokeOpacity: 0.9,
+        legend: { type: 'solid', color: '#22d3ee' },
+        keyFields: [
+            { key: 'NAME', label: 'Name' },
+            { key: 'DIAMETER_HEIGHT', label: 'Diameter/Height (in)', format: 'number' },
+            { key: 'MATERIAL', label: 'Material' },
+            { key: 'OWNER', label: 'Owner' }
+        ],
+        detailLabel: 'Storm Drain Infrastructure',
+    },
+    {
+        id: 'sdn_natural_drainage',
+        name: 'Natural Drainage',
+        file: '/data/sdn/NaturalDrainage.geojson',
+        color: '#2dd4bf',
+        weight: 2.2,
+        lineWeightByZoom: { min: 2.2, max: 4.2, minZoom: 9, maxZoom: 18 },
+        minClickWeight: 4,
+        fillColor: 'transparent',
+        description: 'Natural drainage channels.',
+        defaultVisible: false,
+        nameField: 'NAME',
+        category: 'sdn',
+        strokeOpacity: 0.9,
+        legend: { type: 'solid', color: '#2dd4bf' },
+        keyFields: [
+            { key: 'NAME', label: 'Name' },
+            { key: 'WIDTH', label: 'Width (ft)', format: 'number' }
+        ],
+        detailLabel: 'Storm Drain Infrastructure',
+    },
+    {
+        id: 'sdn_force_main',
+        name: 'Force Mains',
+        file: '/data/sdn/ForceMain.geojson',
+        color: '#d946ef',
+        weight: 2.2,
+        lineWeightByZoom: { min: 2.2, max: 4.2, minZoom: 9, maxZoom: 18 },
+        minClickWeight: 4,
+        fillColor: 'transparent',
+        description: 'Pressurized storm drain force mains.',
+        defaultVisible: false,
+        nameField: 'NAME',
+        category: 'sdn',
+        strokeOpacity: 0.9,
+        legend: { type: 'solid', color: '#d946ef' },
+        keyFields: [
+            { key: 'NAME', label: 'Name' },
+            { key: 'DIAMETER', label: 'Diameter (in)', format: 'number' },
+            { key: 'MATERIAL', label: 'Material' }
+        ],
+        detailLabel: 'Storm Drain Infrastructure',
+    },
+    {
+        id: 'sdn_permitted_connection',
+        name: 'Permitted Connections',
+        file: '/data/sdn/PermittedConnection.bin',
+        color: '#f43f5e', // Vibrant Rose/Pink (Not green)
+        weight: 2.2,
+        lineWeightByZoom: { min: 2.2, max: 4.2, minZoom: 9, maxZoom: 18 },
+        minClickWeight: 4,
+        smoothFactor: 2.0,
+        fillColor: 'transparent',
+        description: 'Permitted storm drain connections.',
+        defaultVisible: false,
+        category: 'sdn',
+        clickOnly: true,
+        strokeOpacity: 0.9,
+        legend: { type: 'solid', color: '#f43f5e' },
+        keyFields: [
+            { key: 'PERMIT_NO', label: 'Permit Number' },
+            { key: 'DIAMETER', label: 'Diameter (in)', format: 'number' }
+        ],
+        detailLabel: 'Storm Drain Infrastructure',
+    },
+    {
+        id: 'sdn_catch_basin',
+        name: 'Catch Basins',
+        file: '/data/sdn/CatchBasin.bin',
+        color: '#78350f',
+        fillColor: '#78350f',
+        clustered: true,
+        disableClusteringAtZoom: 14,
+        description: 'Stormwater catch basins / inlets (167K+ points).',
+        defaultVisible: false,
+        category: 'sdn',
+        clickOnly: true,
+        radius: 2.2,
+        minClickRadius: 2.5,
+        radiusByZoom: { min: 0.1, max: 12.0, minZoom: 10, maxZoom: 18 },
+        weight: 0,
+        strokeOpacity: 0,
+        legend: { type: 'solid', color: '#78350f' },
+        keyFields: [
+            { key: 'SUBTYPE', label: 'Subtype' },
+            { key: 'BMP', label: 'BMP Type' }
+        ],
+        detailLabel: 'Storm Drain Infrastructure',
+    },
+    {
+        id: 'sdn_maintenance_hole',
+        name: 'Maintenance Holes',
+        file: '/data/sdn/MaintenanceHole.bin',
+        color: '#fbbf24',
+        fillColor: '#fbbf24',
+        clustered: true,
+        disableClusteringAtZoom: 14,
+        description: 'Storm drain maintenance holes (75K+ points).',
+        defaultVisible: false,
+        category: 'sdn',
+        clickOnly: true,
+        radius: 2.2,
+        minClickRadius: 2.5,
+        radiusByZoom: { min: 0.1, max: 12.0, minZoom: 10, maxZoom: 18 },
+        weight: 0,
+        strokeOpacity: 0,
+        legend: { type: 'solid', color: '#fbbf24' },
+        keyFields: [
+            { key: 'SUBTYPE', label: 'Subtype' }
+        ],
+        detailLabel: 'Storm Drain Infrastructure',
+    },
+    {
+        id: 'sdn_pump_station',
+        name: 'Pump Stations',
+        file: '/data/sdn/PumpStation.geojson',
+        color: '#8b5cf6',
+        fillColor: '#8b5cf6',
+        description: 'Storm drain pump stations.',
+        defaultVisible: false,
+        nameField: 'NAME',
+        category: 'sdn',
+        radius: 5,
+        radiusByZoom: { min: 3, max: 8, minZoom: 10, maxZoom: 16 },
+        weight: 1,
+        strokeOpacity: 0.8,
+        legend: { type: 'solid', color: '#8b5cf6' },
+        keyFields: [
+            { key: 'NAME', label: 'Station Name' },
+            { key: 'CAPACITY', label: 'Capacity', format: 'number' },
+            { key: 'NO_PUMPS', label: 'Number of Pumps', format: 'number' }
+        ]
+    },
     {
         id: 'watershed_boundaries',
         name: 'Watershed Area Boundaries (SCWP)',
-        file: '/data/watershed_boundaries.geojson',
+        file: '/data/watershed_boundaries.bin',
         color: '#475569',
         weight: 3,
         fillColor: 'transparent',
@@ -502,11 +746,13 @@ const LAYER_CONFIG = [
     {
         id: 'watershed_subbasins',
         name: 'Watershed Subbasins',
-        file: '/data/Watershed/Watersheds subbasins.geojson',
+        file: '/data/Watershed/Watersheds subbasins.bin',
         color: '#2563eb', // Blue border
         weight: 1,
-        fillColor: 'transparent',
+        fillColor: '#2563eb',
+        fillOpacity: 0.01, // Near-invisible fill so polygons remain easy to click
         isBoundary: true,
+        interactive: true,
         showLabels: false,
         description: 'Finer granular division of major watershed drainages.',
         defaultVisible: false,
@@ -552,6 +798,7 @@ const LAYER_CONFIG = [
 export const CATEGORIES = {
     overlays: { label: 'Overlays' },
     datasets: { label: 'Datasets (pick one)' },
+    sdn: { label: 'Storm Drain Network (SDN)' },
 };
 
 export function formatValue(value, format) {
@@ -608,6 +855,8 @@ export const FIELD_ALIASES = {
     // ── School Indices (CWH) ──
     cdscode: 'CDS School Code',
     level: 'School Level',
+    Ed_Type: 'School Type',
+    Street: 'Street Address',
     Impermeable_SqFt: 'Impermeable Area (sq ft) (SCW 2023)',
     Soil_Score_Average: 'Avg Soil Infiltration Score',
     InfilPot_Raw: 'Infiltration Potential (Raw)',

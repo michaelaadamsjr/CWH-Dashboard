@@ -57,7 +57,6 @@ function ScoreBar({ value, color, is100Scale }) {
         </div>
     );
 }
-
 export default function DetailPanel({ selected, onClose, layerData, onFeatureClick, onZoomRequest, scoringWeights }) {
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -189,7 +188,8 @@ export default function DetailPanel({ selected, onClose, layerData, onFeatureCli
     const { properties, layerId, coLocated = [], feature } = selected;
     const layerCfg = LAYER_CONFIG.find(l => l.id === layerId);
     const rawName = properties[layerCfg?.nameField];
-    const featureName = (!rawName || rawName === 'nan' || rawName === 'NaN') ? 'Unknown Feature' : rawName;
+    const isMissingName = !rawName || rawName === 'nan' || rawName === 'NaN';
+    const featureName = isMissingName ? (layerCfg?.name || 'Unknown Feature') : rawName;
 
     // Separate score fields from other fields for visual rendering
     const scoreFormats = ['score', 'percentile'];
@@ -222,18 +222,33 @@ export default function DetailPanel({ selected, onClose, layerData, onFeatureCli
             </div>
             <div className="detail-body">
                 {/* Layer badge */}
-                <div style={{
-                    display: 'inline-block',
-                    padding: '3px 10px',
-                    borderRadius: '12px',
-                    background: (layerCfg?.fillColor || 'var(--accent-cyan)') + '22',
-                    color: layerCfg?.fillColor || 'var(--accent-cyan)',
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    marginBottom: '14px',
-                }}>
-                    {layerCfg?.detailLabel || layerCfg?.name || layerId}
-                </div>
+                {layerCfg?.detailLabel && (
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: 'var(--bg-card)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border-subtle)',
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px',
+                        marginBottom: '14px',
+                        width: 'fit-content'
+                    }}>
+                        <div style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: layerCfg?.color || 'var(--accent-cyan)',
+                            flexShrink: 0
+                        }} />
+                        {layerCfg.detailLabel}
+                    </div>
+                )}
 
                 {/* Multi-school campus — show all names as a 'Schools' field right at the top */}
                 {coLocated.length > 0 && (() => {
@@ -365,13 +380,12 @@ export default function DetailPanel({ selected, onClose, layerData, onFeatureCli
                     </>
                 )}
 
-                {/* SCWP layer descriptions — shown contextually */}
+                {/* SCWP layer descriptions - shown contextually */}
                 {layerId === 'scw_stormwater' && (
                     <div style={{ marginTop: '12px', padding: '10px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
                         <div style={{ fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-primary)', marginBottom: '6px' }}>About This Layer</div>
                         <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '8px' }}>
-                            Identifies areas with significant potential to increase local water supply through
-                            stormwater capture. "Wet" = wet-weather only; "Wet or Dry" = year-round potential.
+                            Identifies areas with potential to increase local water supply through stormwater capture. Categories (General, High, Higher, Highest) are relative priority bins. "Wet" means capture potential tied to storm events only. "Wet or Dry" means potential exists during storm events and from dry-weather/baseflow runoff.
                         </div>
                         <table style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'collapse' }}>
                             <thead>
@@ -382,8 +396,8 @@ export default function DetailPanel({ selected, onClose, layerData, onFeatureCli
                             </thead>
                             <tbody>
                                 <tr><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>General</td><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>&lt; 75th</td></tr>
-                                <tr><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>High</td><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>75th – 85th</td></tr>
-                                <tr><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>Higher</td><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>85th – 95th</td></tr>
+                                <tr><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>High</td><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>75th - 85th</td></tr>
+                                <tr><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>Higher</td><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>85th - 95th</td></tr>
                                 <tr><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>Highest</td><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>&gt; 95th</td></tr>
                             </tbody>
                         </table>
@@ -394,8 +408,7 @@ export default function DetailPanel({ selected, onClose, layerData, onFeatureCli
                     <div style={{ marginTop: '12px', padding: '10px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
                         <div style={{ fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-primary)', marginBottom: '6px' }}>About This Layer</div>
                         <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '8px' }}>
-                            Highlights areas with the greatest potential for pollutant load reduction.
-                            Scored per watershed based on zinc, total phosphorus, and bacteria loading, indexed to a 0–9 scale.
+                            Highlights watersheds with strong potential to reduce pollutant loading and, in some areas, increase local water supply. Labels with "(Water Quality Only)" indicate pollutant-load reduction benefit without meaningful added water-supply benefit. Labels without that suffix indicate both water-quality and water-supply opportunity.
                         </div>
                         <table style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'collapse' }}>
                             <thead>
@@ -406,9 +419,9 @@ export default function DetailPanel({ selected, onClose, layerData, onFeatureCli
                             </thead>
                             <tbody>
                                 <tr><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>General</td><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>0</td></tr>
-                                <tr><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>High</td><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>0 – 3</td></tr>
-                                <tr><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>Higher</td><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>3 – 6</td></tr>
-                                <tr><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>Highest</td><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>6 – 9</td></tr>
+                                <tr><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>High</td><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>0 - 3</td></tr>
+                                <tr><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>Higher</td><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>3 - 6</td></tr>
+                                <tr><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>Highest</td><td style={{ padding: '3px 6px', color: 'var(--text-secondary)' }}>6 - 9</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -418,11 +431,7 @@ export default function DetailPanel({ selected, onClose, layerData, onFeatureCli
                     <div style={{ marginTop: '12px', padding: '10px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
                         <div style={{ fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-primary)', marginBottom: '6px' }}>About This Layer</div>
                         <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                            Identifies areas with significant potential to increase local water supply through
-                            groundwater recharge and storage. Filtered to unconfined managed aquifers and their
-                            upstream capture areas. Excludes areas where stormwater runoff is already managed by
-                            existing wet-weather SCWP projects or major capture facilities. Incorporates drainage
-                            data from the LA County Drainage Needs Assessment Program (DNAP).
+                            Identifies areas with potential to increase local water supply through groundwater recharge and storage. Prioritizes unconfined managed aquifers and their upstream capture areas, and excludes places where stormwater runoff is already managed by major existing capture facilities. Uses drainage information from the LA County Drainage Needs Assessment Program (DNAP).
                         </div>
                     </div>
                 )}
@@ -452,7 +461,7 @@ export default function DetailPanel({ selected, onClose, layerData, onFeatureCli
                                 </div>
                             ) : (
                                 <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                                    No hydrologic group assigned — this area is excluded from infiltration scoring.
+                                    No hydrologic group assigned - this area is excluded from infiltration scoring.
                                 </div>
                             )}
                         </div>
@@ -507,3 +516,4 @@ export default function DetailPanel({ selected, onClose, layerData, onFeatureCli
         </div>
     );
 }
+

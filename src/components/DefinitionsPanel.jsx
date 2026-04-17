@@ -191,7 +191,7 @@ const DefinitionsPanel = React.memo(() => {
                         • Soil classification — gNATSGO (USDA-NRCS)<br />
                         • Impermeable surface — SCW Program Parcels (2023)<br />
                         • Park proximity — LA County DPR (¼-mile spatial join)<br />
-                        • School polygons & grade levels — CSCD (2024)
+                        • School polygons & grade levels — CSCD (2025)
                     </div>
                 </div>
 

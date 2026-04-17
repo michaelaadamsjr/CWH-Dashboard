@@ -1,45 +1,18 @@
-/**
- * ╔═══════════════════════════════════════════════════════════════════════╗
- * ║  ScoringPanel.jsx — Interactive Scoring Weight Editor                 ║
- * ╚═══════════════════════════════════════════════════════════════════════╝
- *
- * ARCHITECTURE ROLE:
- *   Right-panel "Scoring" tab. Provides range sliders + number inputs to
- *   tune the Custom Greening Index weights in real time.
- *
- * DRAFT vs COMMIT PATTERN:
- *   - To avoid expensive score recomputation on every slider tick, this
- *     component maintains a local `draft` state that updates instantly.
- *   - The parent (App.jsx) only receives updates on "commit" events:
- *     mouseup, touchend, blur, or Enter key.
- *   - This means the sliders feel buttery-smooth while the map only
- *     re-renders when the user finishes dragging.
- *
- * AUTO-REBALANCE:
- *   - The `rebalance()` function redistributes remaining budget
- *     (100% - changed slider) proportionally across all other sliders.
- *   - Uses largest-remainder allocation to ensure the total always sums
- *     to exactly 100% (no floating-point drift).
- *
- * RESET:
- *   - "Reset Defaults" restores the weights defined in
- *     SCORING_VARIABLES[].defaultWeight (30/30/30/5/5).
- */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SCORING_VARIABLES, getDefaultWeights } from '../scoringConfig';
 
-/**
- * Rebalance: given one changed slider, redistribute the remaining budget
- * (100 - newVal) proportionally across the other sliders.
- * Pure function — no side effects.
- */
+const SCHOOL_INDEX_OPTIONS = [
+    { value: 'CWHScore', label: 'Custom Greening Index' },
+    { value: 'CanopyHeatReliefScore', label: 'Canopy Heat Relief' },
+    { value: 'DisadvantagedCommunitiesScore', label: 'Community Opportunity Score' },
+    { value: 'infilpot_pctl', label: 'Infiltration Potential' },
+];
+
 function rebalance(prev, id, newVal, lockedIds = new Set()) {
-    // Total of locked variables (excluding the one being changed)
     const lockedTotal = SCORING_VARIABLES
         .filter(v => lockedIds.has(v.id) && v.id !== id)
         .reduce((sum, v) => sum + (prev[v.id] || 0), 0);
 
-    // The maximum value this parameter can take is 100 - lockedTotal
     const maxAllowed = 100 - lockedTotal;
     const cappedVal = Math.min(newVal, maxAllowed);
 
@@ -50,8 +23,6 @@ function rebalance(prev, id, newVal, lockedIds = new Set()) {
     const next = { ...prev, [id]: cappedVal };
 
     if (otherUnlockedIds.length === 0) {
-        // If no other unlocked variables exist, we must force the changed variable
-        // to equal exactly the remaining available budget to keep the sum at 100.
         next[id] = maxAllowed;
         return next;
     }
@@ -87,44 +58,50 @@ function rebalance(prev, id, newVal, lockedIds = new Set()) {
     return next;
 }
 
-export default function ScoringPanel({ weights, setWeights }) {
-    // Local "draft" weights update instantly on every drag tick for smooth visuals.
-    // The parent (App.jsx) only receives updates on commit (mouseup / touchend / blur / Enter).
+export default function ScoringPanel({
+    weights,
+    setWeights,
+    activeSchoolMetric = 'CWHScore',
+    setActiveSchoolMetric,
+}) {
     const [draft, setDraft] = useState(weights);
     const [lockedIds, setLockedIds] = useState(new Set());
     const isDragging = useRef(false);
+    const isCustomIndex = activeSchoolMetric === 'CWHScore';
 
-    // Sync draft when parent weights change externally (e.g. Reset Defaults)
     useEffect(() => {
         if (!isDragging.current) setDraft(weights);
     }, [weights]);
 
     const total = Object.values(draft).reduce((s, w) => s + w, 0);
 
-    /** Update local draft only (no parent recomputation) */
     const handleDraft = useCallback((id, value) => {
-        if (lockedIds.has(id)) return;
+        if (!isCustomIndex || lockedIds.has(id)) return;
         const newVal = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
         setDraft(prev => rebalance(prev, id, newVal, lockedIds));
-    }, [lockedIds]);
+    }, [isCustomIndex, lockedIds]);
 
-    /** Commit the current draft to the parent, triggering score recomputation */
     const commitDraft = useCallback(() => {
         isDragging.current = false;
+        if (!isCustomIndex) return;
         setDraft(current => {
             setWeights(current);
             return current;
         });
-    }, [setWeights]);
+    }, [isCustomIndex, setWeights]);
 
     const handleReset = () => {
         const defaults = getDefaultWeights();
         setLockedIds(new Set());
         setDraft(defaults);
         setWeights(defaults);
+        if (!isCustomIndex && setActiveSchoolMetric) {
+            setActiveSchoolMetric('CWHScore');
+        }
     };
 
     const toggleLock = (id) => {
+        if (!isCustomIndex) return;
         setLockedIds(prev => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id);
@@ -140,7 +117,38 @@ export default function ScoringPanel({ weights, setWeights }) {
                 Other weights auto-adjust to keep the total at 100%.
             </div>
 
-            {/* Weight Sliders */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    School Index
+                </label>
+                <select
+                    value={activeSchoolMetric}
+                    onChange={(e) => setActiveSchoolMetric && setActiveSchoolMetric(e.target.value)}
+                    className="metric-select"
+                    style={{ width: '100%' }}
+                >
+                    {SCHOOL_INDEX_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {!isCustomIndex && (
+                <div style={{
+                    fontSize: '0.72rem',
+                    color: 'var(--text-muted)',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    lineHeight: 1.45,
+                }}>
+                    Single-index mode is active. Switch to <strong>Custom Greening Index</strong> to edit weights.
+                </div>
+            )}
+
             {SCORING_VARIABLES.map(v => {
                 const pct = draft[v.id] || 0;
                 const isLocked = lockedIds.has(v.id);
@@ -160,22 +168,25 @@ export default function ScoringPanel({ weights, setWeights }) {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <button
                                     onClick={() => toggleLock(v.id)}
-                                    title={isLocked ? "Unlock weight" : "Lock weight"}
+                                    disabled={!isCustomIndex}
+                                    title={isLocked ? 'Unlock weight' : 'Lock weight'}
                                     style={{
                                         background: 'transparent',
                                         border: 'none',
-                                        cursor: 'pointer',
-                                        fontSize: '0.9rem',
-                                        padding: '2px',
+                                        cursor: isCustomIndex ? 'pointer' : 'not-allowed',
+                                        fontSize: '0.65rem',
+                                        padding: '2px 4px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        opacity: isLocked ? 1 : 0.4,
+                                        opacity: !isCustomIndex ? 0.25 : (isLocked ? 1 : 0.6),
                                         transition: 'opacity 0.2s',
-                                        lineHeight: 1
+                                        lineHeight: 1,
+                                        color: 'var(--text-secondary)',
+                                        minWidth: '32px',
                                     }}
                                 >
-                                    {isLocked ? '🔒' : '🔓'}
+                                    {isLocked ? 'LOCKED' : 'LOCK'}
                                 </button>
                                 <input
                                     type="number"
@@ -183,17 +194,17 @@ export default function ScoringPanel({ weights, setWeights }) {
                                     max="100"
                                     step="1"
                                     value={pct}
-                                    disabled={isLocked}
+                                    disabled={!isCustomIndex || isLocked}
                                     onChange={(e) => {
                                         handleDraft(v.id, e.target.value);
                                     }}
                                     onBlur={() => {
-                                        if (!isLocked) setLockedIds(prev => new Set(prev).add(v.id));
+                                        if (isCustomIndex && !isLocked) setLockedIds(prev => new Set(prev).add(v.id));
                                         commitDraft();
                                     }}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
-                                            if (!isLocked) setLockedIds(prev => new Set(prev).add(v.id));
+                                            if (isCustomIndex && !isLocked) setLockedIds(prev => new Set(prev).add(v.id));
                                             commitDraft();
                                         }
                                     }}
@@ -222,7 +233,7 @@ export default function ScoringPanel({ weights, setWeights }) {
                             max="100"
                             step="1"
                             value={pct}
-                            disabled={isLocked}
+                            disabled={!isCustomIndex || isLocked}
                             onPointerDown={() => { isDragging.current = true; }}
                             onChange={(e) => handleDraft(v.id, e.target.value)}
                             onPointerUp={commitDraft}
@@ -234,7 +245,7 @@ export default function ScoringPanel({ weights, setWeights }) {
                                 height: '4px',
                                 borderRadius: '2px',
                                 outline: 'none',
-                                cursor: 'pointer',
+                                cursor: isCustomIndex && !isLocked ? 'pointer' : 'not-allowed',
                                 background: `linear-gradient(to right, var(--accent-cyan) ${pct}%, var(--border-subtle) ${pct}%)`,
                             }}
                         />
@@ -245,7 +256,6 @@ export default function ScoringPanel({ weights, setWeights }) {
                 );
             })}
 
-            {/* Total & Reset */}
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -267,19 +277,24 @@ export default function ScoringPanel({ weights, setWeights }) {
                 </div>
                 <button
                     onClick={handleReset}
+                    disabled={!isCustomIndex}
                     style={{
                         padding: '6px 14px',
                         fontSize: '0.72rem',
                         fontWeight: 600,
                         border: '1px solid var(--border-accent)',
                         borderRadius: '6px',
-                        background: 'var(--bg-primary)',
-                        color: 'var(--text-primary)',
-                        cursor: 'pointer',
+                        background: !isCustomIndex ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        color: !isCustomIndex ? 'var(--text-muted)' : 'var(--text-primary)',
+                        cursor: isCustomIndex ? 'pointer' : 'not-allowed',
                         transition: 'all 0.15s',
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--accent-cyan)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-primary)'}
+                    onMouseEnter={(e) => {
+                        if (isCustomIndex) e.currentTarget.style.background = 'var(--accent-cyan)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = !isCustomIndex ? 'var(--bg-secondary)' : 'var(--bg-primary)';
+                    }}
                 >
                     Reset Defaults
                 </button>
