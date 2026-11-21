@@ -56,7 +56,7 @@
  * - computeScores() returns a Float64Array of min-max normalized 0–1 scores.
  */
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents } from 'react-leaflet';
+import { AttributionControl, MapContainer, TileLayer, GeoJSON, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import 'leaflet.markercluster';
@@ -713,53 +713,44 @@ function ViewportCounter({ schoolFeatures, isActive, onUpdate }) {
     return null;
 }
 
-// Dynamically swap tile layers when boundaries toggle
+const ESRI_TILES = 'https://server.arcgisonline.com/ArcGIS/rest/services';
+const TILE_PATH = 'MapServer/tile/{z}/{y}/{x}';
+const GRAY_MAP_CREDIT = 'Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, and the GIS user community';
+
 function DynamicTileLayer({ showLabels, basemapType }) {
-    const map = useMap();
-    const tileRef = useRef(null);
+    if (basemapType === 'satellite') {
+        return (
+            <TileLayer
+                key="satellite"
+                url={`${ESRI_TILES}/World_Imagery/${TILE_PATH}`}
+                attribution='Imagery &copy; <a href="https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9">Esri and imagery providers</a>'
+                maxNativeZoom={19}
+                maxZoom={20}
+            />
+        );
+    }
 
-    useEffect(() => {
-        if (tileRef.current) {
-            map.removeLayer(tileRef.current);
-        }
-
-        let url;
-        let attribution;
-        let maxNativeZoom;
-
-        if (basemapType === 'satellite') {
-            url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-            attribution = '';
-            maxNativeZoom = 19;
-        } else if (basemapType === 'dark') {
-            url = showLabels
-                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                : 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
-            attribution = '';
-            maxNativeZoom = 20;
-        } else {
-            // Default: Light
-            url = showLabels
-                ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-                : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
-            attribution = '';
-            maxNativeZoom = 20;
-        }
-
-        tileRef.current = L.tileLayer(url, {
-            attribution: attribution,
-            maxNativeZoom: maxNativeZoom,
-            maxZoom: 20,
-            className: basemapType === 'dark' ? 'dark-basemap-filter' : ''
-        }).addTo(map);
-        // Ensure tiles render below everything else
-        tileRef.current.bringToBack();
-        return () => {
-            if (tileRef.current) map.removeLayer(tileRef.current);
-        };
-    }, [showLabels, basemapType, map]);
-
-    return null;
+    const style = basemapType === 'dark' ? 'Dark' : 'Light';
+    const canvas = `${ESRI_TILES}/Canvas/World_${style}_Gray`;
+    return (
+        <>
+            <TileLayer
+                url={`${canvas}_Base/${TILE_PATH}`}
+                attribution={GRAY_MAP_CREDIT}
+                maxNativeZoom={16}
+                maxZoom={20}
+                zIndex={0}
+            />
+            {showLabels && (
+                <TileLayer
+                    url={`${canvas}_Reference/${TILE_PATH}`}
+                    maxNativeZoom={16}
+                    maxZoom={20}
+                    zIndex={1}
+                />
+            )}
+        </>
+    );
 }
 
 // Create custom panes to strictly enforce rendering z-index order
@@ -1307,6 +1298,7 @@ function App() {
                         preferCanvas={false} /* CRITICAL: Do NOT enable Canvas rendering. It makes layers uninteractable and performance issues are likely related to point-count/styling overhead. */
                         style={{ height: '100%', width: '100%' }}
                     >
+                        <AttributionControl position="bottomleft" prefix={false} />
                         <DynamicTileLayer
                             showLabels={!visibleLayers['watershed_boundaries']}
                             basemapType={basemapType}

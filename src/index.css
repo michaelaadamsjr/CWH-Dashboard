@@ -25,7 +25,7 @@
  *   1. Typography + resets (Inter, box-sizing, scrollbar hides)
  *   2. Layout — dashboard, layer-panel, map-wrapper, detail-panel
  *   3. Layer panel — toggles, category labels, metric select
- *   4. Map overrides — Leaflet zoom, attribution, dark basemap filter
+ *   4. Map overrides — Leaflet zoom and attribution
  *   5. Detail panel — tabs, attribute rows, score bars, empty state
  *   6. Stats panel — cards grid, chart containers
  *   7. Legend panel — overlay positioning, gradient/categorical/solid
@@ -329,11 +329,6 @@ body,
   height: 100%;
   width: 100%;
   background: var(--bg-primary);
-}
-
-/* Custom filter to make the CartoDB Dark basemap a softer, lighter gray */
-.dark-basemap-filter {
-  filter: brightness(1.8) contrast(0.85) !important;
 }
 
 /* Override Leaflet dark theme */

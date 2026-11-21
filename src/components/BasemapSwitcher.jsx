@@ -5,7 +5,7 @@
  *
  * ARCHITECTURE ROLE:
  *   Three-button group in the LayerPanel footer that switches between
- *   Light (CartoDB Positron), Dark (CartoDB Dark Matter), and Satellite
+ *   Light and Dark (Esri Gray Canvas) and Satellite
  *   (Esri World Imagery) basemaps.
  *
  * HOW IT WORKS:
